@@ -4,24 +4,36 @@ A configurable .NET console application for seamless data transfer between datab
 
 ## Overview
 
-DataTransferUtility is a flexible and configurable console application that simplifies the process of transferring data between databases and external systems. It currently supports exporting data from SQL databases to CSV files and uploading them via SFTP, with plans to add import functionality in the future.
+DataTransferUtility is a flexible and configurable console application that simplifies the process of transferring data between databases and external systems. It supports both:
+- **Export**: Query data from SQL databases, export to CSV files, and upload via SFTP
+- **Import**: Download Excel files from SFTP, process their contents, and import into SQL databases
 
 ## Features
 
-- **Database to CSV Export**: Query data from SQL Server and export to CSV files
-- **Data Grouping**: Group and split data exports based on configurable field values
-- **Secure File Transfer**: Upload generated files to remote servers via SFTP
+### Shared Features
+- **Secure File Transfer**: Transfer files securely via SFTP
 - **Highly Configurable**: All settings are managed through configuration without code changes
 - **Error Handling**: Comprehensive error logging and exception management
+
+### Export Module
+- **Database to CSV Export**: Query data from SQL Server and export to CSV files
+- **Data Grouping**: Group and split data exports based on configurable field values
 - **File Management**: Organized directory structure with tracking of processed files
+
+### Import Module
+- **Excel File Processing**: Download and process Excel files from SFTP servers
+- **Multi-sheet Support**: Process and merge data from all sheets in workbooks
+- **Pattern Matching**: Identify and extract metadata from filenames using patterns
+- **Smart Data Mapping**: Map Excel columns to database columns using configuration
 
 ## Getting Started
 
 ### Prerequisites
 
 - .NET Framework 4.7.2+ or .NET Core 3.1+
-- SQL Server database (for data source)
-- SFTP server details (if using file transfer capabilities)
+- SQL Server database (for data source/target)
+- SFTP server details (for file transfer)
+- EPPlus library (for Excel processing)
 
 ### Installation
 
@@ -31,15 +43,15 @@ DataTransferUtility is a flexible and configurable console application that simp
    ```
 
 2. Set up the configuration file:
-   - Modify the `appsettings.json` with your database connection string, SFTP details, and export settings
-   - See the example configuration section below
+   - Modify the `appsettings.json` with your database connection string, SFTP details, and import/export settings
+   - See the example configurations below
 
 3. Build the application:
    ```
    dotnet build
    ```
 
-### Example Configuration
+### Example Export Configuration
 
 ```json
 {
@@ -75,15 +87,44 @@ DataTransferUtility is a flexible and configurable console application that simp
 }
 ```
 
+### Example Import Configuration
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Database=YourDatabase;Trusted_Connection=True;"
+  },
+  "SftpConfig": {
+    "HostName": "sftp.example.com",
+    "UserName": "username",
+    "Password": "password",
+    "SshHostKeyFingerprint": "ssh-rsa-xxxxxxxxxxx",
+    "SshKeyPath": "C:\\Keys\\id_rsa.ppk",
+    "SshKeyPassphrase": "",
+    "RemoteDirectory": "/downloads/data"
+  },
+  "ImportConfig": {
+    "LocalDirectory": "C:\\Imports\\Data",
+    "FileNamePattern": "{Year}-{Code}-{ID}*.xlsx",
+    "TargetTable": "dbo.ImportedData",
+    "DeleteCondition": "PrimaryId = @PrimaryId AND SecondaryId = @SecondaryId",
+    "ColumnMappings": "SI ID=StudentId, Eff Dt=EffectiveDate, Exp Dt=ExpirationDate",
+    "CleanupFiles": true
+  }
+}
+```
+
 ## Usage
 
-Run the application to export data and transfer files:
+### Export Module
+
+Run the export module to extract data from a database and transfer files:
 
 ```
-dotnet run
+dotnet run --project DataTransferUtility.Export
 ```
 
-The application will:
+The export module will:
 1. Connect to the specified database
 2. Run any preparation stored procedures if configured
 3. Fetch data from the specified table
@@ -92,9 +133,27 @@ The application will:
 6. Upload the files via SFTP (if enabled)
 7. Move processed files to the "Sent" directory
 
+### Import Module
+
+Run the import module to download and process Excel files:
+
+```
+dotnet run --project DataTransferUtility.Import
+```
+
+The import module will:
+1. Connect to the SFTP server
+2. Download Excel files matching the specified pattern
+3. Extract identifiers from filenames
+4. Delete existing records from the database if needed
+5. Process all sheets in the Excel files
+6. Insert the data into the database
+7. Clean up local files (if configured)
+
 ## Roadmap
 
-- [ ] Add import functionality to support data ingestion
+- [x] Export functionality
+- [x] Import functionality
 - [ ] Support for multiple file formats (JSON, XML, etc.)
 - [ ] Add scheduling capabilities
 - [ ] Implement data transformation options
@@ -112,4 +171,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - [WinSCP](https://winscp.net/) for SFTP functionality
 - [CsvHelper](https://joshclose.github.io/CsvHelper/) for CSV file handling
+- [EPPlus](https://github.com/EPPlusSoftware/EPPlus) for Excel processing
 - [Microsoft.Extensions.Configuration](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.configuration) for configuration management
